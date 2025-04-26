@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>بازی دوز هوشمند چندسایزی - ساخته شده توسط عرفان علیخانی</title>
+  <meta name="description" content="ساخت بازی دوز تعاملی پیشرفته با استفاده از HTML، CSS و JavaScript با قابلیت بازی مقابل کامپیوتر در سطوح مختلف دشواری و اندازه‌های متفاوت صفحه بازی (3×3، 4×4، 6×6)">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+    }
+    .board {
+      display: grid;
+      gap: 0.5rem;
+      background: #e5e7eb;
+      border-radius: 1rem;
+      margin: 0 auto;
+      transition: grid-template-columns 0.3s;
+    }
+    .cell {
+      aspect-ratio: 1/1;
+      background: #fff;
+      border-radius: 0.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      border: 1px solid #d1d5db;
+      user-select: none;
+    }
+    .cell:hover, .cell:focus {
+      background: #f1f5f9;
+    }
+    .cell.disabled {
+      cursor: not-allowed;
+      color: #9ca3af;
+    }
+    .cell.win {
+      background: #fbbf24;
+      color: #fff;
+    }
+    .settings-radio input[type="radio"] {
+      accent-color: #3b82f6 !important;
+    }
+    .settings-select {
+      background: #fff;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      padding: 0.375rem 0.75rem;
+      font-size: 1rem;
+      margin-left: 0.5rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .settings-select:focus {
+      border-color: #3b82f6;
+    }
+    @media print {
+      body {
+        background: #fff !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .game-panel, .scoreboard {
+        box-shadow: none !important;
+      }
+      .cell {
+        box-shadow: none !important;
+      }
+    }
+    .w{
+        color: red;
+    }
+    .t{
+        color: #3b82f6;
+    }
+  </style>
+</head>
+<body>
+  <main class="max-w-3xl mx-auto p-4">
+    <header class="mb-6 text-center">
+      <h1 class="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center">
+        <i class="fas fa-chess fa-sm ml-2 text-blue-500"></i>
+        بازی&nbsp;دوز هوشمند چندسایزی
+      </h1>
+      <p class="text-gray-600">با قابلیت انتخاب اندازه صفحه، سطح دشواری و بازی مقابل کامپیوتر<br> <span class="text-xs text-gray-400">ساخته شده توسط عرفان علیخانی </span></p>
+    </header>
+    <section class="bg-white rounded-xl p-4 mb-6 shadow game-panel">
+      <form id="settingsForm" class="flex flex-wrap items-center justify-center gap-4 mb-4">
+        <div class="flex flex-col items-start">
+          <label class="font-semibold mb-1">انتخاب اندازه صفحه:</label>
+          <select class="settings-select" id="boardSize" aria-label="Board Size">
+            <option value="3">۳×۳ (کلاسیک)</option>
+            <option value="4">۴×۴</option>
+            <option value="6">۶×۶</option>
+          </select>
+        </div>
+        <div class="flex flex-col items-start">
+          <label class="font-semibold mb-1">سطح دشواری:</label>
+          <select class="settings-select" id="difficulty" aria-label="Difficulty">
+            <option value="easy">آسان</option>
+            <option value="medium">متوسط</option>
+            <option value="hard">سخت</option>
+          </select>
+        </div>
+        <div class="flex flex-col items-start">
+          <label class="font-semibold mb-1">نماد شما:</label>
+          <div class="flex settings-radio gap-1">
+            <label class="flex items-center"><input class="ml-1" type="radio" name="playerMark" value="X" checked> X</label>
+            <label class="flex items-center mr-3"><input class="ml-1" type="radio" name="playerMark" value="O"> O</label>
+          </div>
+        </div>
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold transition-shadow shadow-sm no-print self-end mt-3">
+          شروع بازی جدید
+        </button>
+      </form>
+      <section class="flex flex-col md:flex-row md:justify-between items-stretch gap-3">
+        <div class="scoreboard flex flex-row justify-between gap-5 items-center bg-gray-50 p-3 rounded-md shadow-sm flex-1">
+          <span class="font-bold text-blue-600 whitespace-nowrap"><i class="fas fa-user"></i> شما: <span id="playerScore" class="ml-1">0</span></span>
+          <span class="font-bold text-green-600 whitespace-nowrap"><i class="fas fa-robot"></i> کامپیوتر: <span id="computerScore" class="ml-1">0</span></span>
+          <span class="font-semibold text-gray-700 whitespace-nowrap">مساوی: <span id="drawScore" class="ml-1">0</span></span>
+        </div>
+        <button id="resetScores" class="block bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold transition-shadow shadow-sm no-print self-end mt-3"
+          aria-label="بازنشانی امتیازها">
+          <i class="fas fa-sync-alt mr-1"></i> بازنشانی امتیازها
+        </button>
+      </section>
+    </section>
+    <section>
+      <div id="status" class="text-center text-lg font-bold my-2 min-h-[2.2rem]"></div>
+      <div id="gameBoard" class="board mx-auto" style="grid-template-columns: repeat(3,1fr); max-width: 480px;"></div>
+      <div class="flex justify-center mt-5">
+        <button id="restartBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg font-bold transition-shadow shadow-sm no-print hidden">
+          <i class="fas fa-redo-alt mr-1"></i> شروع مجدد
+        </button>
+      </div>
+    </section>
+    <footer class="mt-10 text-center text-xs text-gray-400">
+      <span>ساخته شده توسط عرفان علیخانی</span><br>
+      <a class="w" href="https://erfan-web.ir" target="_blank">وبسایت من</a><br>
+      <a class="t" href="https://t.me:/erfwp">تلگرام</a><br>
+      <a class="w" href="https://www.youtube.com/@erfanalikhani_official">یوتیوب</a>
+    </footer>
+  </main>
+  <script>
+    // --- Persian strings ---
+    const MESSAGES = {
+      yourTurn: "نوبت شماست.",
+      computersTurn: "نوبت کامپیوتر است...",
+      youWin: "شما برنده شدید! 🎉",
+      computerWins: "کامپیوتر برنده شد! 🤖",
+      draw: "بازی مساوی شد! 🤝",
+      pleaseWait: "لطفا صبر کنید...",
+      selectBoard: "لطفا اندازه صفحه و نماد را انتخاب کنید.",
+      startPrompt: "برای شروع بازی گزینه&zwnj;ها را تنظیم و دکمه شروع را بزنید."
+    };
+
+    // --- Game Variables ---
+    let size = 3, board = [], isPlayerTurn = true, playerMark = 'X', computerMark = 'O', running = false;
+    let difficulty = 'easy';
+    let playerScore = 0, computerScore = 0, drawScore = 0;
+    let winCombo = [];
+
+    // --- DOM elements ---
+    const boardDiv = document.getElementById('gameBoard');
+    const statusDiv = document.getElementById('status');
+    const form = document.getElementById('settingsForm');
+    const playerScoreSpan = document.getElementById('playerScore');
+    const computerScoreSpan = document.getElementById('computerScore');
+    const drawScoreSpan = document.getElementById('drawScore');
+    const resetScoresBtn = document.getElementById('resetScores');
+    const restartBtn = document.getElementById('restartBtn');
+    const boardSizeSelect = document.getElementById('boardSize');
+    const diffSelect = document.getElementById('difficulty');
+
+    // --- Game Logic ---
+    function initializeBoard(_size) {
+      board = Array(_size * _size).fill('');
+      size = _size;
+      isPlayerTurn = (playerMark === 'X');
+      winCombo = [];
+      running = true;
+      renderBoard();
+      statusDiv.innerHTML = isPlayerTurn ? MESSAGES.yourTurn : MESSAGES.computersTurn;
+      restartBtn.classList.add('hidden');
+      // Computer may start
+      if (!isPlayerTurn) setTimeout(computerMove, 600);
+    }
+
+    function renderBoard() {
+      boardDiv.innerHTML = '';
+      boardDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      const maxWidth = Math.min(60 * size, 480);
+      boardDiv.style.maxWidth = maxWidth + 'px';
+      for (let i = 0; i < board.length; i++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.tabIndex = 0;
+        cell.className = 'cell transition-all';
+        cell.setAttribute('aria-label', `خانه ${i+1}`);
+        cell.dataset.index = i;
+        cell.textContent = board[i];
+        if (winCombo.includes(i)) {
+          cell.classList.add('win');
+          cell.disabled = true;
+        } else if (board[i] !== '' || !running) {
+          cell.classList.add('disabled');
+          cell.disabled = true;
+        }
+        cell.addEventListener('click', onCellClick, { once: true });
+        boardDiv.appendChild(cell);
+      }
+    }
+
+    function onCellClick(e) {
+      if (!running || !isPlayerTurn) return;
+      const idx = Number(e.currentTarget.dataset.index);
+      if (board[idx]) return;
+      board[idx] = playerMark;
+      renderBoard();
+      let winnerCheck = checkWinner(board, size, playerMark);
+      if (winnerCheck.win) {
+        running = false;
+        winCombo = winnerCheck.combo;
+        statusDiv.innerHTML = `<span class="text-green-600">${MESSAGES.youWin}</span>`;
+        playerScore++;
+        playerScoreSpan.textContent = playerScore;
+        revealWinningCombo();
+        restartBtn.classList.remove('hidden');
+        return;
+      } else if (board.every(c => c !== '')) {
+        running = false;
+        statusDiv.innerHTML = `<span class="text-yellow-600">${MESSAGES.draw}</span>`;
+        drawScore++; drawScoreSpan.textContent = drawScore;
+        restartBtn.classList.remove('hidden');
+        return;
+      }
+      // Computer turn
+      isPlayerTurn = false;
+      statusDiv.innerHTML = MESSAGES.computersTurn;
+      setTimeout(computerMove, 600);
+    }
+
+    function computerMove() {
+      if (!running) return;
+      let move = -1;
+      if (difficulty === 'easy') {
+        move = randomMove(board);
+      } else if (difficulty === 'medium') {
+        move = mediumAIMove(board, computerMark, playerMark, size);
+      } else {
+        move = minimaxRoot(board, computerMark, playerMark, size);
+      }
+      if (move === -1) { // Fallback
+        move = randomMove(board);
+      }
+      board[move] = computerMark;
+      renderBoard();
+      let winnerCheck = checkWinner(board, size, computerMark);
+      if (winnerCheck.win) {
+        running = false;
+        winCombo = winnerCheck.combo;
+        statusDiv.innerHTML = `<span class="text-red-600">${MESSAGES.computerWins}</span>`;
+        computerScore++;
+        computerScoreSpan.textContent = computerScore;
+        revealWinningCombo();
+        restartBtn.classList.remove('hidden');
+        return;
+      } else if (board.every(c => c !== '')) {
+        running = false;
+        statusDiv.innerHTML = `<span class="text-yellow-600">${MESSAGES.draw}</span>`;
+        drawScore++; drawScoreSpan.textContent = drawScore;
+        restartBtn.classList.remove('hidden');
+        return;
+      }
+      isPlayerTurn = true;
+      statusDiv.innerHTML = MESSAGES.yourTurn;
+    }
+
+    function randomMove(bd) {
+      const emp = [];
+      for (let i = 0; i < bd.length; ++i) if (!bd[i]) emp.push(i);
+      if (!emp.length) return -1;
+      return emp[Math.floor(Math.random() * emp.length)];
+    }
+
+    function mediumAIMove(bd, ai, pl, sz) {
+      // block or win, otherwise random
+      // Check win
+      for (let i = 0; i < bd.length; ++i) {
+        if (!bd[i]) {
+          bd[i] = ai;
+          const win = checkWinner(bd, sz, ai).win;
+          bd[i] = '';
+          if (win) return i;
+        }
+      }
+      // Block opponent
+      for (let i = 0; i < bd.length; ++i) {
+        if (!bd[i]) {
+          bd[i] = pl;
+          const win = checkWinner(bd, sz, pl).win;
+          bd[i] = '';
+          if (win) return i;
+        }
+      }
+      // Center (if available and sz > 3)
+      if (sz > 3 && !bd[Math.floor(bd.length/2)]) return Math.floor(bd.length/2);
+      return randomMove(bd);
+    }
+
+    // --- Minimax root (optimal for Tic-Tac-Toe) ---
+    function minimaxRoot(bd, aiMark, plMark, sz) {
+      let bestScore = -Infinity, move = -1;
+      for (let i = 0; i < bd.length; ++i) {
+        if (!bd[i]) {
+          bd[i] = aiMark;
+          const score = minimax(bd, false, aiMark, plMark, sz, 0, -Infinity, Infinity);
+          bd[i] = '';
+          if (score > bestScore) {
+            bestScore = score;
+            move = i;
+          }
+        }
+      }
+      return move;
+    }
+
+    function minimax(bd, isMaximizing, ai, pl, sz, depth, alpha, beta) {
+      const aiWin = checkWinner(bd, sz, ai).win, plWin = checkWinner(bd, sz, pl).win;
+      if (aiWin) return 10 - depth;
+      if (plWin) return -10 + depth;
+      if (bd.every(c => c !== '')) return 0;
+      if (depth > 4 && sz > 3) return 0; // Don't go too deep on larger boards
+      let best;
+      if (isMaximizing) {
+        best = -Infinity;
+        for (let i = 0; i < bd.length; ++i) if (!bd[i]) {
+          bd[i] = ai;
+          const val = minimax(bd, false, ai, pl, sz, depth + 1, alpha, beta);
+          bd[i] = '';
+          best = Math.max(best, val);
+          alpha = Math.max(alpha, best);
+          if (beta <= alpha) break;
+        }
+        return best;
+      } else {
+        best = Infinity;
+        for (let i = 0; i < bd.length; ++i) if (!bd[i]) {
+          bd[i] = pl;
+          const val = minimax(bd, true, ai, pl, sz, depth + 1, alpha, beta);
+          bd[i] = '';
+          best = Math.min(best, val);
+          beta = Math.min(beta, best);
+          if (beta <= alpha) break;
+        }
+        return best;
+      }
+    }
+
+    function checkWinner(bd, sz, mark) {
+      // rows
+      for (let r = 0; r < sz; ++r) {
+        let combo = [];
+        for (let c = 0; c < sz; ++c) if (bd[r*sz + c] === mark) combo.push(r*sz + c);
+        if (combo.length === sz) return { win: true, combo };
+      }
+      // cols
+      for (let c = 0; c < sz; ++c) {
+        let combo = [];
+        for (let r = 0; r < sz; ++r) if (bd[r*sz + c] === mark) combo.push(r*sz + c);
+        if (combo.length === sz) return { win: true, combo };
+      }
+      // main diag
+      let combo = [];
+      for (let d = 0; d < sz; ++d) if (bd[d*sz + d] === mark) combo.push(d*sz + d);
+      if (combo.length === sz) return { win: true, combo };
+      // anti diag
+      combo = [];
+      for (let d = 0; d < sz; ++d) if (bd[d*sz + (sz-d-1)] === mark) combo.push(d*sz + (sz-d-1));
+      if (combo.length === sz) return { win: true, combo };
+      return { win: false, combo: [] };
+    }
+
+    function revealWinningCombo() {
+      renderBoard();
+    }
+
+    /* --- Event Handlers --- */
+    form.addEventListener('submit', evt => {
+      evt.preventDefault();
+      const formData = new FormData(form);
+      size = Number(formData.get('boardSize') || boardSizeSelect.value);
+      difficulty = formData.get('difficulty') || diffSelect.value;
+      playerMark = formData.get('playerMark') || 'X';
+      computerMark = playerMark === 'X' ? 'O' : 'X';
+      initializeBoard(size);
+      // Persist settings
+      boardSizeSelect.value = size;
+      diffSelect.value = difficulty;
+    });
+
+    boardSizeSelect.addEventListener('change', () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    diffSelect.addEventListener('change', () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    Array.from(form.querySelectorAll('input[name="playerMark"]')).forEach(radio=>{
+      radio.addEventListener('change', () => {
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      });
+    })
+
+    resetScoresBtn.addEventListener('click', () => {
+      playerScore = computerScore = drawScore = 0;
+      playerScoreSpan.textContent = playerScore;
+      computerScoreSpan.textContent = computerScore;
+      drawScoreSpan.textContent = drawScore;
+    });
+
+    restartBtn.addEventListener('click', () => {
+      initializeBoard(size);
+    });
+
+    // --- Initial State ---
+    document.addEventListener('DOMContentLoaded', () => {
+      statusDiv.innerHTML = MESSAGES.startPrompt;
+      renderBoard();
+    });
+
+    // --- RTL for Selects/Inputs (Fix Chrome PDF export) ---
+    document.querySelectorAll('select, input').forEach(el=>{
+      el.style.direction='rtl'; el.classList.add('rtl');
+    });
+  </script>
+</body>
+</html>
+
